@@ -31,6 +31,7 @@ jobs:
       - name: Create Python script for processing geosite.dat
         run: |
           echo 'import yaml' > process_geosite.py
+          echo 'import binascii' >> process_geosite.py
           echo 'def load_yaml_file(filename, encoding="utf-8"):' >> process_geosite.py
           echo '    with open(filename, "rb") as file:' >> process_geosite.py
           echo '        content = file.read()' >> process_geosite.py
@@ -39,9 +40,18 @@ jobs:
           echo '    except UnicodeDecodeError:' >> process_geosite.py
           echo '        print(f"Failed to decode with {encoding}, trying latin1")' >> process_geosite.py
           echo '        return yaml.safe_load(content.decode("latin1"))' >> process_geosite.py
+          echo '    except yaml.YAMLError as e:' >> process_geosite.py
+          echo '        print(f"YAML error: {e}")' >> process_geosite.py
+          echo '        print("First few bytes of the file (in hex):")' >> process_geosite.py
+          echo '        print(binascii.hexlify(content[:100]).decode("utf-8"))' >> process_geosite.py
+          echo '        raise' >> process_geosite.py
           echo '' >> process_geosite.py
           echo '# 加载 geosite.dat 文件' >> process_geosite.py
-          echo 'data = load_yaml_file("geosite.dat")' >> process_geosite.py
+          echo 'try:' >> process_geosite.py
+          echo '    data = load_yaml_file("geosite.dat")' >> process_geosite.py
+          echo 'except Exception as e:' >> process_geosite.py
+          echo '    print(f"Failed to load YAML file: {e}")' >> process_geosite.py
+          echo '    exit(1)' >> process_geosite.py
           echo '' >> process_geosite.py
           echo '# 提取所需类别' >> process_geosite.py
           echo 'desired_categories = ["aliyun", "apple", "kuaishou", "gitv", "iqiyi", "bilibili"]' >> process_geosite.py
