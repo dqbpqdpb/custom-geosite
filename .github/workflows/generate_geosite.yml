@@ -1,63 +1,45 @@
-name: Extract and Merge Geosite Categories
+name: Generate Custom geosite.dat
 
 on:
   push:
     branches:
-      - release
+      - main
   workflow_dispatch:
 
 jobs:
-  extract_categories:
+  build-geosite:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      - name: Download geosite.dat from MetaCubeX/meta-rules-dat
+        run: |
+          git clone --depth=1 -b release https://github.com/MetaCubeX/meta-rules-dat.git
+          cp meta-rules-dat/geosite.dat ./geosite.dat
+
+      - name: Set up Go environment
+        uses: actions/setup-go@v2
         with:
-          python-version: '3.x'
+          go-version: '1.20'
 
-      - name: Install dependencies
+      - name: Clone geosite-tool
         run: |
-          pip install pyyaml
+          git clone https://github.com/MetaCubeX/geosite-tool.git
+          cd geosite-tool
+          go install ./...
 
-      - name: Check geosite.dat file existence
+      - name: Extract and Merge Categories
         run: |
-          if [ ! -f path/to/geosite.dat ]; then
-            echo "geosite.dat not found!"
-            exit 1
-          fi
+          ./geosite-tool extract -f geosite.dat -c aliyun,apple,kuaishou,gitv,iqiyi,bilibili -o cn.txt
 
-      - name: Extract and merge categories
+      - name: Generate custom geosite.dat
         run: |
-          import yaml
+          ./geosite-tool generate -i cn.txt -o release/geosite.dat
 
-          # Load geosite.dat file
-          with open('path/to/geosite.dat', 'r') as file:
-              data = yaml.safe_load(file)
-
-          # Filter and merge categories into 'cn'
-          cn_category = []
-          for category in data['categories']:
-              if category['name'] in ['aliyun', 'apple', 'kuaishou', 'gitv', 'iqiyi', 'bilibili']:
-                  cn_category.extend(category['items'])
-
-          # Create new category if it doesn't exist
-          existing_cn_category = next((cat for cat in data['categories'] if cat['name'] == 'cn'), None)
-          if existing_cn_category:
-              existing_cn_category['items'].extend(cn_category)
-          else:
-              data['categories'].append({'name': 'cn', 'items': cn_category})
-
-          # Save updated geosite.dat
-          with open('path/to/geosite.dat', 'w') as file:
-              yaml.dump(data, file)
-
-      - name: Commit changes
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add path/to/geosite.dat
-          git commit -m "Merge specified categories into 'cn'" || echo "No changes to commit"
-          git push
+      - name: Upload geosite.dat
+        uses: actions/upload-artifact@v3
+        with:
+          name: geosite.dat
+          path: release/geosite.dat
