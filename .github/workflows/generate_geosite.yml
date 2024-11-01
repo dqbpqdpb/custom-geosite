@@ -1,43 +1,52 @@
-name: Generate Custom geosite.dat
+name: Extract and Merge Geosite Categories
 
 on:
   push:
     branches:
-      - main  # 当推送到 main 分支时触发
-  workflow_dispatch:  # 手动触发工作流
+      - release
+  workflow_dispatch:
 
 jobs:
-  build-geosite:
+  extract_categories:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Download geosite.dat from MetaCubeX/meta-rules-dat
-        run: |
-          git clone --depth=1 -b release https://github.com/MetaCubeX/meta-rules-dat.git
-          cp meta-rules-dat/geosite.dat ./geosite.dat
-
-      - name: Set up Go environment
-        uses: actions/setup-go@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
         with:
-          go-version: '1.20'  # 根据需要选择 Go 版本
+          python-version: '3.x'
 
-      - name: Download and install geosite-tool
+      - name: Install dependencies
         run: |
-          go install github.com/MetaCubeX/geosite-tool@latest
+          pip install pyyaml
 
-      - name: Extract and Merge Categories
+      - name: Extract and merge categories
         run: |
-          $(go env GOPATH)/bin/geosite-tool extract -f geosite.dat -c aliyun,apple,kuaishou,gitv,iqiyi,bilibili -o cn.txt
+          import yaml
 
-      - name: Generate custom geosite.dat
+          # Load geosite.dat file
+          with open('path/to/geosite.dat', 'r') as file:
+              data = yaml.safe_load(file)
+
+          # Filter and merge categories into 'cn'
+          cn_category = []
+          for category in data['categories']:
+              if category['name'] in ['desired_category_1', 'desired_category_2']:  # Replace with actual categories
+                  cn_category.extend(category['items'])
+
+          # Create new category
+          data['categories'].append({'name': 'cn', 'items': cn_category})
+
+          # Save updated geosite.dat
+          with open('path/to/geosite.dat', 'w') as file:
+              yaml.dump(data, file)
+
+      - name: Commit changes
         run: |
-          $(go env GOPATH)/bin/geosite-tool generate -i cn.txt -o release/geosite.dat
-
-      - name: Upload geosite.dat
-        uses: actions/upload-artifact@v3
-        with:
-          name: geosite.dat
-          path: release/geosite.dat
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add path/to/geosite.dat
+          git commit -m "Merge specified categories into 'cn'"
+          git push
