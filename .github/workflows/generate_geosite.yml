@@ -19,21 +19,42 @@ jobs:
           git clone --depth=1 -b release https://github.com/MetaCubeX/meta-rules-dat.git
           cp meta-rules-dat/geosite.dat ./geosite.dat
 
-      - name: Install Go
-        uses: actions/setup-go@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
         with:
-          go-version: '1.20'  # 根据需要选择 Go 版本
+          python-version: '3.x'  # 根据需要选择 Python 版本
 
-      - name: Install xray-geodata-cut
+      - name: Install dependencies
         run: |
-          go install github.com/yichya/xray-geodata-cut@latest
+          pip install pyyaml
 
       - name: Extract and Merge Categories
         run: |
-          xray-geodata-cut -in geosite.dat -keep aliyun,apple,kuaishou,gitv,iqiyi,bilibili -out cn.geosite.dat
+          python - <<EOF
+import yaml
+
+# 加载 geosite.dat 文件
+with open('geosite.dat', 'r') as file:
+    data = yaml.safe_load(file)
+
+# 提取所需类别
+desired_categories = ['aliyun', 'apple', 'kuaishou', 'gitv', 'iqiyi', 'bilibili']
+cn_category = []
+
+for category in data['categories']:
+    if category['name'] in desired_categories:
+        cn_category.extend(category['items'])
+
+# 创建新的 cn 类别
+data['categories'].append({'name': 'cn', 'items': cn_category})
+
+# 保存更新后的 geosite.dat 文件
+with open('new_geosite.dat', 'w') as file:
+    yaml.dump(data, file)
+EOF
 
       - name: Upload custom geosite.dat
         uses: actions/upload-artifact@v3
         with:
           name: custom_geosite.dat
-          path: cn.geosite.dat
+          path: new_geosite.dat
