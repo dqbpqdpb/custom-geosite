@@ -19,17 +19,20 @@ jobs:
           git clone --depth=1 -b release https://github.com/MetaCubeX/meta-rules-dat.git
           cp meta-rules-dat/geosite.dat ./geosite.dat
 
-      - name: Install geosite-tool
+      - name: Set up Go environment
         run: |
-          go get github.com/MetaCubeX/geosite-tool
+          mkdir -p mymodule
+          cd mymodule
+          go mod init mymodule
+          go install github.com/MetaCubeX/geosite-tool@latest
 
       - name: Extract and Merge Categories
         run: |
-          $(go env GOPATH)/bin/geosite-tool extract -f geosite.dat -c aliyun,apple,kuaishou,gitv,iqiyi,bilibili -o cn.txt
+          mymodule/bin/geosite-tool extract -f geosite.dat -c aliyun,apple,kuaishou,gitv,iqiyi,bilibili -o cn.txt
 
       - name: Generate custom geosite.dat
         run: |
-          $(go env GOPATH)/bin/geosite-tool generate -i cn.txt -o release/geosite.dat
+          mymodule/bin/geosite-tool generate -i cn.txt -o release/geosite.dat
 
       - name: Upload geosite.dat
         uses: actions/upload-artifact@v3
