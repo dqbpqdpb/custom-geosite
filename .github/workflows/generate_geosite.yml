@@ -3,8 +3,8 @@ name: Generate Custom geosite.dat
 on:
   push:
     branches:
-      - main
-  workflow_dispatch:
+      - main  # 当推送到 main 分支时触发
+  workflow_dispatch:  # 手动触发工作流
 
 jobs:
   build-geosite:
@@ -19,27 +19,21 @@ jobs:
           git clone --depth=1 -b release https://github.com/MetaCubeX/meta-rules-dat.git
           cp meta-rules-dat/geosite.dat ./geosite.dat
 
-      - name: Set up Go environment
+      - name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: '1.20'
+          go-version: '1.20'  # 根据需要选择 Go 版本
 
-      - name: Clone geosite-tool
+      - name: Install xray-geodata-cut
         run: |
-          git clone https://github.com/MetaCubeX/geosite-tool.git
-          cd geosite-tool
-          go install ./...
+          go install github.com/yichya/xray-geodata-cut@latest
 
       - name: Extract and Merge Categories
         run: |
-          ./geosite-tool extract -f geosite.dat -c aliyun,apple,kuaishou,gitv,iqiyi,bilibili -o cn.txt
+          xray-geodata-cut -in geosite.dat -keep aliyun,apple,kuaishou,gitv,iqiyi,bilibili -out cn.geosite.dat
 
-      - name: Generate custom geosite.dat
-        run: |
-          ./geosite-tool generate -i cn.txt -o release/geosite.dat
-
-      - name: Upload geosite.dat
+      - name: Upload custom geosite.dat
         uses: actions/upload-artifact@v3
         with:
-          name: geosite.dat
-          path: release/geosite.dat
+          name: custom_geosite.dat
+          path: cn.geosite.dat
