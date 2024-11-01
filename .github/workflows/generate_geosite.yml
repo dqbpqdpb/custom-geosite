@@ -24,24 +24,19 @@ jobs:
         with:
           go-version: '1.20'  # 根据需要选择 Go 版本
 
-      - name: Create Go module
+      - name: Clone geosite-tool
         run: |
-          mkdir mymodule
-          cd mymodule
-          go mod init mymodule  # 初始化 Go 模块
-
-      - name: Install geosite-tool
-        run: |
-          cd mymodule
-          go install github.com/MetaCubeX/geosite-tool@latest
+          git clone --depth=1 https://github.com/MetaCubeX/geosite-tool.git
+          cd geosite-tool
+          go install ./...
 
       - name: Extract and Merge Categories
         run: |
-          mymodule/bin/geosite-tool extract -f ../geosite.dat -c aliyun,apple,kuaishou,gitv,iqiyi,bilibili -o cn.txt
+          ./geosite-tool/geosite-tool extract -f geosite.dat -c aliyun,apple,kuaishou,gitv,iqiyi,bilibili -o cn.txt
 
       - name: Generate custom geosite.dat
         run: |
-          mymodule/bin/geosite-tool generate -i cn.txt -o release/geosite.dat
+          ./geosite-tool/geosite-tool generate -i cn.txt -o release/geosite.dat
 
       - name: Upload geosite.dat
         uses: actions/upload-artifact@v3
