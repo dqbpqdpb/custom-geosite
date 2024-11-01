@@ -24,19 +24,17 @@ jobs:
         with:
           go-version: '1.20'  # 根据需要选择 Go 版本
 
-      - name: Clone geosite-tool
+      - name: Download and install geosite-tool
         run: |
-          git clone --depth=1 https://github.com/MetaCubeX/geosite-tool.git
-          cd geosite-tool
-          go install ./...
+          go install github.com/MetaCubeX/geosite-tool@latest
 
       - name: Extract and Merge Categories
         run: |
-          ./geosite-tool/geosite-tool extract -f geosite.dat -c aliyun,apple,kuaishou,gitv,iqiyi,bilibili -o cn.txt
+          $(go env GOPATH)/bin/geosite-tool extract -f geosite.dat -c aliyun,apple,kuaishou,gitv,iqiyi,bilibili -o cn.txt
 
       - name: Generate custom geosite.dat
         run: |
-          ./geosite-tool/geosite-tool generate -i cn.txt -o release/geosite.dat
+          $(go env GOPATH)/bin/geosite-tool generate -i cn.txt -o release/geosite.dat
 
       - name: Upload geosite.dat
         uses: actions/upload-artifact@v3
