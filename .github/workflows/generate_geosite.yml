@@ -12,15 +12,15 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Download geosite.dat from MetaCubeX/meta-rules-dat
         run: |
           git clone --depth=1 -b release https://github.com/MetaCubeX/meta-rules-dat.git
-          cp meta-rules-dat/geosite.dat ./geosite.dat
+          cp meta-rules-dat/geosite.dat .
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.x'  # 根据需要选择 Python 版本
 
@@ -28,30 +28,23 @@ jobs:
         run: |
           pip install pyyaml
 
-      - name: Extract and Merge Categories
+      - name: Create Python script for processing geosite.dat
         run: |
-          python - <<EOF
-import yaml
+          echo 'import yaml' > process_geosite.py
+          echo 'with open("geosite.dat", "r") as file:' >> process_geosite.py
+          echo '    data = yaml.safe_load(file)' >> process_geosite.py
+          echo 'desired_categories = ["aliyun", "apple", "kuaishou", "gitv", "iqiyi", "bilibili"]' >> process_geosite.py
+          echo 'cn_category = []' >> process_geosite.py
+          echo 'for category in data["categories"]:' >> process_geosite.py
+          echo '    if category["name"] in desired_categories:' >> process_geosite.py
+          echo '        cn_category.extend(category["items"])' >> process_geosite.py
+          echo 'data["categories"].append({"name": "cn", "items": cn_category})' >> process_geosite.py
+          echo 'with open("new_geosite.dat", "w") as file:' >> process_geosite.py
+          echo '    yaml.safe_dump(data, file)' >> process_geosite.py
 
-# 加载 geosite.dat 文件
-with open('geosite.dat', 'r') as file:
-    data = yaml.safe_load(file)
-
-# 提取所需类别
-desired_categories = ['aliyun', 'apple', 'kuaishou', 'gitv', 'iqiyi', 'bilibili']
-cn_category = []
-
-for category in data['categories']:
-    if category['name'] in desired_categories:
-        cn_category.extend(category['items'])
-
-# 创建新的 cn 类别
-data['categories'].append({'name': 'cn', 'items': cn_category})
-
-# 保存更新后的 geosite.dat 文件
-with open('new_geosite.dat', 'w') as file:
-    yaml.dump(data, file)
-EOF
+      - name: Run Python script to extract and merge categories
+        run: |
+          python process_geosite.py
 
       - name: Upload custom geosite.dat
         uses: actions/upload-artifact@v3
